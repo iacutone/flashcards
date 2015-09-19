@@ -5,8 +5,10 @@ Rails.application.routes.draw do
 
   namespace :api do
     namespace :v1 do
-      post '/sign_in', to: 'users#sign_in'
+      post '/sign_in', to: 'sessions#sign_in'
+      post '/sign_up', to: 'sessions#sign_up'
       post '/data', to: 'uploads#data'
+      get 'images', to: 'uploads#images'
     end
   end
 

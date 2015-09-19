@@ -1,6 +1,7 @@
 source 'https://rubygems.org'
 ruby '2.2.1'
 
+gem 'aescrypt'
 gem 'aws-sdk', "~> 1.8.1.2"
 gem 'bcrypt', '~> 3.1.7'
 gem 'bootstrap-sass', '~> 3.3.5'
@@ -9,6 +10,7 @@ gem 'figaro'
 gem 'haml-rails'
 gem 'jquery-rails'
 gem 'jbuilder', '~> 2.0'
+gem 'mini_magick'
 gem 'pg'
 gem 'puma'
 gem 'rails', '4.2.3'

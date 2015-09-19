@@ -41,9 +41,12 @@ class Api::V1::SessionsController < ApplicationController
       if params[:email].present? && params[:password].present? 
 
         user = User.find_by(email: params[:email])
-                      
-        if user.present? 
-          if user.authenticate(params[:password])    
+
+        if user.present?
+          encrypted_password = params['password'].gsub(" ","+").concat("\n")
+          decrypted_password = AESCrypt.decrypt(encrypted_password, ENV['AuthPassword'])
+
+          if user.authenticate(decrypted_password) == user  
             render :json => user.to_json, :status => 200
           else
             render(
@@ -59,7 +62,7 @@ class Api::V1::SessionsController < ApplicationController
                   status: 400,
                   json: {
                     success: false,
-                    info: "User not found."
+                    info: "User not found"
                   }
                 ) and return
         end
