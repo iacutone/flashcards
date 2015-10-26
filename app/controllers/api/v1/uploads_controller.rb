@@ -4,14 +4,58 @@ class Api::V1::UploadsController < ApplicationController
   def data
     s3        = S3Coordinator.new
     user      = User.find_by(email: params[:email])
-    file_name = "#{user.email} #{Time.now.to_s(:number)}.png"
-    image     = s3.upload_image(params['photo'].tempfile, file_name)
-    image_url = image.url_for(:read).to_s
+    file_name = "#{user.email} #{Time.now.to_s(:number)}.jpg"
+    image     = MiniMagick::Image.new(params['photo'].tempfile.path)
+    image.resize "375x375"
+    s3_image  = s3.upload_image(image.path, file_name)
 
-    image = Image.new(user_id: user.id, image_url: image_url, word: params[:image_name], file_name: file_name)
+    image = Image.new(user_id: user.id, word: params[:image_name], file_name: file_name)
 
     if image.save
       render(status: 200)
+    else
+      render(
+            status: 200,
+            json: {
+              success: false,
+              info: "You have not uploaded and images."
+            }
+          ) and return
+    end
+  end
+
+  def select_image
+    user        = User.find_by(email: params[:email])
+    user_count  = user.counter
+    image_count = user.images.not_hidden.size
+    increment   = params[:increment].to_i
+
+    if user_count + increment >= image_count
+      user.counter = 0
+      user.save!
+    elsif user_count + increment < 0
+      user.counter = image_count - 1
+      user.save!
+    else
+      user.counter = user_count + increment
+      user.save!
+    end
+
+    image = user.images[user.counter]
+    
+    s3 = S3Coordinator.new
+
+    if user.present? && user.images.present?
+      render(
+              status: 200,
+              json: {
+                success: true,
+                data: {
+                  s3_url: s3.fetch_image_url(image.file_name),
+                  word: image.word
+                }
+              }
+            ) and return
     else
       render(
             status: 400,
@@ -24,21 +68,7 @@ class Api::V1::UploadsController < ApplicationController
   end
 
   def images
-    user           = User.find_by(email: params[:email])
-    image_size     = user.images.size
-    # increment      = params[:increment].to_i
-    # count          = params[:count].to_i
-    image = user.images.first
-
-    # image = user.images.first
-
-    # if count > image_size
-    #   count = 0
-    # elsif count < 0
-    # else
-    # end
-    
-    s3 = S3Coordinator.new
+    user = User.find_by(email: params[:email])
 
     if user.present? && user.images.present?
       render(
@@ -46,10 +76,7 @@ class Api::V1::UploadsController < ApplicationController
               json: {
                 success: true,
                 data: {
-                  s3_url: s3.fetch_image_url(image.file_name),
-                  word: image.word
-                  # increment: increment,
-                  # count: count
+                  images: user.images.not_hidden
                 }
               }
             ) and return
@@ -59,6 +86,54 @@ class Api::V1::UploadsController < ApplicationController
             json: {
               success: false,
               info: "You have not uploaded and images."
+            }
+          ) and return
+    end
+  end
+
+  def edit_image
+    image = Image.find(params[:image_id])
+    image.word = params[:word]
+    
+    if image.save
+      render(
+              status: 200,
+              json: {
+                success: true
+              }
+            ) and return
+    else
+      render(
+            status: 200,
+            json: {
+              success: false,
+              info: image.errors.first
+            }
+          ) and return
+    end
+  end
+
+  def hide_image
+    user  = User.find_by(email: params[:email])
+    image = Image.find(params[:image_id])
+    image.hidden = true
+    
+    if image.save
+      render(
+              status: 200,
+              json: {
+                success: true,
+                data: {
+                  images: user.images.not_hidden
+                }
+              }
+            ) and return
+    else
+      render(
+            status: 200,
+            json: {
+              success: false,
+              info: image.errors.first
             }
           ) and return
     end

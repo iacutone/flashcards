@@ -15,6 +15,6 @@ class S3Coordinator
 
   def fetch_image_url(file_name)
     object = bucket.objects[file_name]
-    url = object.url_for(:read).to_s
+    object.url_for(:read).to_s
   end
 end

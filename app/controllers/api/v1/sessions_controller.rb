@@ -37,6 +37,7 @@ class Api::V1::SessionsController < ApplicationController
   end
 
   def sign_in
+    
     if request.post?
       if params[:email].present? && params[:password].present? 
 
@@ -73,6 +74,6 @@ class Api::V1::SessionsController < ApplicationController
   private
 
     def user_params
-      params.require(:user).permit(:email, :password, :token)
+      params.require(:user).permit(:email)
     end
 end
